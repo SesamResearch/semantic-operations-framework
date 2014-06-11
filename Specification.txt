@@ -1,0 +1,80 @@
+
+Semantic Operations Framework
+-----------------------------
+
+Introduction
+--
+
+RDF has proven itself as a technology for integration and for semantic interchange of complex, graph like data models. Recently work has also been done on how RESTful CRUD services can work with RDF, but what is missing is a more generalised approach for describing business rules and data structure modifications over a RDF data model. 
+
+The Semantic Operation Framework describes a data model and related semantics that allow the unambigous description of operation semantics. An operation can be considered as any kind of update to an RDF store. Operations are described in terms of the data properties they contain, the pre-conditions that must hold, the update operation itself, event generation semantics, and exception semantics.
+
+Operation Data Model
+--
+
+The following data model describes a schema for how an operation should be defined. It uses the RMIL[1] langauge. Instances can be validated using RDFCL[2].
+
+prefix "http://www.sesam.io/meta/sof"
+
+class SemanticOperation
+	xsd:string validation-expression 1 1
+	xsd:string update-expression 1 1 
+	# coming later..
+	# xsd:string event-expression 1 1
+	# xsd:string authentication-expression 1 1
+	# xsd:string exception_expression 1 1
+
+An instance	of SemanticOperation contains the actual validation and update queries for that class of operation. In addition, it iself should be defined as an RDF type. This type also defines constraints. These constraints are used to define the shape of instances invoking this operation.
+
+This is best shown through the use of a worked example:
+
+# This class defines the constraints on invocation
+# instances
+class CloseAggregation
+	xsd:string aggregation-id
+end
+
+# The same class is also an instance of SemanticOperation
+# It is here that the class level operations are defined.
+instance CloseAggregation SemanticOperation
+	validation-expression "select ?x where { 
+								?x moreq2010:isclosed "true"
+								FILTER(?x = [[aggregation-id]]) 
+							}"  
+	update-expression "delete {
+							[[aggregation-id]] moreq2010:isClosed "false" .
+					   insert {
+							[[aggregation-id]] moreq2010:isClosed "true" .
+						}"
+
+# Finally an instance of an invocation can be defined
+# It is an instance of CloseAggregation
+instance closing_an_aggregation CloseAggregation
+	aggregation-id "http://example.org/agg/1" 
+end
+						
+Operation Evaluation Semantics
+--
+
+The evaluation semantics are defined as follows:
+
+* An RDF fragment defining an instance of an SemanticOperation is to be processed. We call this fragment 'o' and the subject 'os'.
+* Check that the rdf type of 'os' exists and is defined as being an instance-of SemanticOperation.
+* The operationtype, called 'ot', is the direct type of 'os'  
+* Check that 'os' meets the RDFCL constraints defined by 'ot'.
+* Bind the values defined in 'o' into a query context and replace the values in the validation-expression indicated with [[xxx]]. 
+* Evaluate the validatin-expression. If this returns any results then the validation expression is considered to have failed.
+* Bind the values defined in 'o' into a query context and replace the values in the update-expression indicated with [[xxx]]. 
+* Evaluate the update-expression.
+
+ 
+
+
+
+
+
+ 
+
+
+  
+
